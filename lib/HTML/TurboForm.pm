@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use UNIVERSAL::require;
 use YAML::Syck;
-our $VERSION='0.48';
+our $VERSION='0.50';
 
 sub new{
   my ($class, $r,$prefix)=@_;
@@ -16,10 +16,16 @@ sub new{
   $self->{submit_id} = -1;
   $self->{addition_modules}='';
   $self->{prefix}='';
+  $self->{row_wrapper}='';
   $self->{prefix}=$prefix if ($prefix);
 
   bless( $self, $class );
   return $self;
+}
+
+sub set_row_wrapper{
+  my ($self, $wrapper) = @_;
+   $self->{row_wrapper}=$wrapper;
 }
 
 sub add_modules{
@@ -112,6 +118,11 @@ sub add_element{
 
   my $class_name = "HTML::TurboForm::Element::" . $params->{ type };
   $class_name->require() or die "Class '" . $class_name . "' does not exist: $@";
+  
+  if (!$params->{wrapper}){  
+      $params->{wrapper}=$self->{row_wrapper} if ($self->{row_wrapper} ne '');
+  }
+  
   my $element= $class_name->new($params,$self->{uploads}->{$name.'_upload'});
 
   my $new_len =  push(@ { $self->{element} },  $element);
@@ -275,7 +286,7 @@ sub render{
 
   my $table=-1;
   my $count=0;
-
+  $view='' if (!$view);
   $action=' action="'.$action.'" ' if ($action);
   $action='' if (!$action);
   my $table_class='class="form_table"';
@@ -283,6 +294,7 @@ sub render{
   $table_class=$self->{table_attibutes} if ($self->{table_attibutes});
 
     my $result='<form method=post '.$action.'enctype="multipart/form-data">';
+    
     if ($view eq 'table'){ $result.='<table '.$table_class.'>'; }
 
     foreach my $item(@{$self->{element}}) {
@@ -291,6 +303,7 @@ sub render{
     if ($self->{element_index}->{$name}->{ignore} ne 'true'){
       $item->{table}=-1;
 
+   
       if ($view eq 'flat'){
           if ($item->type ne 'Submit'){
               my $label = $item->get_label();
